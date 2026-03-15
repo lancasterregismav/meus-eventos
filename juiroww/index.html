@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>juiroww</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@300;400;600;800&family=Material+Symbols+Outlined" rel="stylesheet"/>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: "#f04e23",
+            background: "#0a0a0a",
+            surface: "#1a1a1a"
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['"Manrope"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    body { background-color: #0a0a0a; color: #ffffff; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Animação do anel de download */
+    .dl-spin::before {
+      content:""; position:absolute; inset:-3px; border-radius:9999px;
+      background: conic-gradient(from 0deg, #f04e23, transparent 60%);
+      animation: spin 1.5s linear infinite; z-index:-1;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="antialiased min-h-screen pb-24 font-sans selection:bg-primary/30">
+
+  <header class="pt-12 pb-6 px-6 text-center">
+<div class="flex items-center justify-center -space-x-5 italic">
+    <div class="opacity-90 animate-pulse">
+        <img src="bolt-thin.png" class="w-24 md:w-32 h-auto" onerror="this.style.display='none'"/>
+    </div>
+    
+    <h1 class="font-serif italic font-bold text-7xl md:text-8xl tracking-tighter leading-none text-white drop-shadow-2xl">
+      bolt
+    </h1>
+</div>
+    <p class="font-serif italic text-lg md:text-xl text-white tracking-[0.15em] mt-2 opacity-90">
+      As fotos do seu evento em tempo real!
+    </p>
+  </header>
+
+  <section class="mx-auto max-w-lg px-6 mb-8">
+    <div class="flex items-center gap-4 bg-surface/50 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
+        <div class="relative">
+            <img src="perfil.jpg" class="w-16 h-16 rounded-full object-cover border-2 border-primary shadow-lg" 
+                 onerror="this.src='https://ui-avatars.com/api/?name=L+A&background=f04e23&color=fff'"/>
+            <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-surface rounded-full"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-lg text-white truncate">by Lancaster A.I. Studio</h3>
+            <p class="text-xs text-gray-400 mb-2">bolt: tecnologia a serviço da emoção</p>
+            <div class="flex gap-3 text-sm font-semibold">
+                <a href="https://wa.me/5538999320748" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-white transition flex items-center gap-1" onclick="event.stopPropagation()">
+    <span class="material-symbols-outlined text-[16px]">chat</span> Contato
+</a>
+                <a href="https://instagram.com/lancaster_a.i_studio" target="_blank" class="text-primary hover:text-white transition flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">photo_camera</span>lancaster_a.i_studio</a>
+            </div>
+        </div>
+    </div>
+  </section>
+
+  <div class="flex justify-center gap-4 mb-6 sticky top-4 z-30 px-6">
+    <button onclick="showFeed()" id="navFeed" class="bg-primary text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all transform hover:scale-105">
+      Feed
+    </button>
+    <button onclick="showGallery()" id="navGal" class="bg-surface text-gray-300 border border-white/10 px-6 py-2 rounded-full text-sm font-bold hover:bg-white/5 transition-all">
+      Galeria
+    </button>
+  </div>
+
+  <main id="mainFeed" class="px-4 max-w-xl mx-auto space-y-8">
+    <div id="feedGrid"></div>
+    <div class="text-center py-8 text-gray-500 text-sm italic">
+        Fim das fotos recentes
+    </div>
+  </main>
+
+  <section id="gallerySection" class="hidden px-4 max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-serif italic text-white">Todas as fotos</h2>
+        <button onclick="downloadSelected()" id="btnDlSel" disabled class="text-xs font-bold bg-white/10 text-white px-3 py-2 rounded-lg disabled:opacity-30">
+            Baixar Selecionadas (<span id="selCount">0</span>)
+        </button>
+    </div>
+    <div id="thumbGrid" class="grid grid-cols-3 md:grid-cols-4 gap-1"></div>
+  </section>
+
+  <div id="lightbox" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl hidden flex flex-col">
+    <div class="flex justify-between items-center p-4 border-b border-white/10">
+        <button onclick="closeLightbox()" class="p-2 rounded-full bg-white/10 text-white hover:bg-white/20">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <span class="text-sm font-serif italic text-gray-400" id="lbCounter">1 / 10</span>
+        <a id="lbDownloadBtn" href="#" download class="p-2 rounded-full bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/30">
+            <span class="material-symbols-outlined">download</span>
+        </a>
+    </div>
+
+    <div class="flex-1 relative flex items-center justify-center overflow-hidden">
+        <img id="lbImage" src="" class="max-w-full max-h-full object-contain transition-opacity duration-300 opacity-0" onload="this.style.opacity=1"/>
+        
+        <button onclick="changeSlide(-1)" class="absolute left-2 p-3 text-white/50 hover:text-white text-4xl">‹</button>
+        <button onclick="changeSlide(1)" class="absolute right-2 p-3 text-white/50 hover:text-white text-4xl">›</button>
+    </div>
+
+    <div class="p-4 bg-surface/90 border-t border-white/10 pb-8">
+        <div class="flex items-center justify-center gap-8 mb-4">
+            <button onclick="toggleLike()" class="flex flex-col items-center gap-1 text-gray-300 hover:text-primary transition">
+                <span class="material-symbols-outlined text-3xl" id="lbHeart">favorite</span>
+                <span class="text-xs" id="lbLikeCount">0</span>
+            </button>
+            <button onclick="focusComment()" class="flex flex-col items-center gap-1 text-gray-300 hover:text-white transition">
+                <span class="material-symbols-outlined text-3xl">chat_bubble</span>
+                <span class="text-xs">Comentar</span>
+            </button>
+            <button onclick="shareViaWhatsApp()" class="flex flex-col items-center gap-1 text-gray-300 hover:text-green-500 transition">
+                <span class="material-symbols-outlined text-3xl text-green-500" style="font-variation-settings: 'FILL' 1;">chat</span>
+                <span class="text-xs text-green-500 font-bold">No Zap</span>
+            </button>
+        </div>
+        
+        <div class="max-w-md mx-auto">
+            <div id="lbComments" class="max-h-32 overflow-y-auto mb-3 space-y-2 text-sm text-gray-300 px-2"></div>
+            <div class="flex flex-col gap-2 w-full">
+    <input id="cmtName" type="text" placeholder="Seu nome (Obrigatório)" class="bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-primary outline-none w-full"/>
+    <div class="flex gap-2">
+        <input id="cmtInput" type="text" placeholder="Deixe um recado..." class="flex-1 bg-black/50 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:border-primary outline-none"/>
+        <button onclick="sendComment()" class="bg-white/10 p-2 rounded-full text-white hover:bg-primary transition">
+            <span class="material-symbols-outlined text-sm">send</span>
+        </button>
+             </div>
+         </div>
+       </div>
+    </div>
+  </div>
+
+  <section class="px-6 py-10 border-t border-white/5 bg-surface/30 mt-10">
+    <h2 class="text-2xl font-serif italic text-white mb-4 text-center">Mural de Recados</h2>
+    <div id="muralList" class="space-y-3 max-w-xl mx-auto"></div>
+    <div class="max-w-xl mx-auto mt-4 flex gap-2">
+        <input id="muralInput" placeholder="Escreva algo para todos..." class="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-white"/>
+        <button onclick="sendMural()" class="bg-primary text-white px-4 rounded-xl font-bold">Enviar</button>
+    </div>
+  </section>
+
+  <script>
+    // --- DADOS E CONFIG ---
+    const PHOTOS = ["IMG_1414.JPG", "IMG_0604.JPG", "IMG_0574.JPG", "IMG_0603.JPG", "IMG_0575.JPG", "IMG_1844.JPG", "IMG_1847.JPG", "IMG_1840.JPG", "IMG_1838.JPG"]; // Injetado pelo Python
+    const EVENT_SLUG = "juiroww";
+    const SUPABASE_URL = "https://chniaasbbezwqrlrdrib.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNobmlhYXNiYmV6d3FybHJkcmliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MTYwODUsImV4cCI6MjA4MjI5MjA4NX0.0IfAyD_a46PY4m2gsD0tqdOCwXjfFufEeUJSkX2vvms";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let currentIndex = 0;
+    let likesCache = {};
+    let commentsCache = {};
+    let selection = new Set();
+    const DEVICE_ID = localStorage.getItem("bolt_uid") || Math.random().toString(36).slice(2);
+    localStorage.setItem("bolt_uid", DEVICE_ID);
+
+    // --- RENDERIZAÇÃO ---
+    function renderFeed() {
+        const grid = document.getElementById("feedGrid");
+        grid.innerHTML = PHOTOS.map((src, idx) => `
+            <div class="group relative aspect-[4/5] w-full overflow-hidden rounded-[2rem] bg-surface shadow-2xl mb-8 cursor-pointer" onclick="openLightbox(${idx})">
+                <img src="${encodeURI(src)}" class="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy"/>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+                
+                <div class="absolute top-5 left-5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-1.5 border border-white/20 shadow-lg">
+                        <span class="material-symbols-outlined text-white" style="font-size: 14px; font-variation-settings: 'FILL' 1;">verified</span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-white">Lancaster</span>
+              </div>
+
+                <div class="absolute top-4 right-4 flex gap-2">
+                    <div class="bg-black/40 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-1 border border-white/10">
+                        <span class="material-symbols-outlined text-sm text-primary filled">favorite</span>
+                        <span class="text-xs font-bold text-white" id="like_feed_${idx}">0</span>
+                    </div>
+                </div>
+
+                <div class="absolute bottom-0 w-full p-6 flex justify-between items-end">
+                    <div>
+                        <p class="text-white/50 font-serif italic text-sm">Felicidade se compartilha!</p>
+                        <p class="text-white/60 text-xs font-sans tracking-wide">Toque para ver em HD</p>
+                    </div>
+                    <a href="${src}" download onclick="event.stopPropagation()" class="bg-primary text-white p-3 rounded-full shadow-lg shadow-primary/30 hover:scale-110 transition dl-spin relative overflow-hidden">
+                        <span class="material-symbols-outlined relative z-10">download</span>
+                    </a>
+                </div>
+            </div>
+        `).join('');
+        updateCounts();
+    }
+
+    function renderGallery() {
+        const grid = document.getElementById("thumbGrid");
+        grid.innerHTML = PHOTOS.map((src, idx) => `
+            <div onclick="toggleSelection(${idx})" class="relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 ${selection.has(idx) ? 'border-primary opacity-100' : 'border-transparent opacity-70'}">
+                <img src="${src}" class="w-full h-full object-cover"/>
+                ${selection.has(idx) ? '<div class="absolute inset-0 bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-white font-bold">check</span></div>' : ''}
+            </div>
+        `).join('');
+        document.getElementById("selCount").innerText = selection.size;
+        document.getElementById("btnDlSel").disabled = selection.size === 0;
+    }
+
+    // --- LÓGICA DE INTERFACE ---
+    function showFeed() {
+        document.getElementById("mainFeed").classList.remove("hidden");
+        document.getElementById("gallerySection").classList.add("hidden");
+        document.getElementById("navFeed").className = "bg-primary text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all";
+        document.getElementById("navGal").className = "bg-surface text-gray-300 border border-white/10 px-6 py-2 rounded-full text-sm font-bold";
+    }
+
+    function showGallery() {
+        document.getElementById("mainFeed").classList.add("hidden");
+        document.getElementById("gallerySection").classList.remove("hidden");
+        document.getElementById("navGal").className = "bg-primary text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all";
+        document.getElementById("navFeed").className = "bg-surface text-gray-300 border border-white/10 px-6 py-2 rounded-full text-sm font-bold";
+        renderGallery();
+    }
+
+    // --- LIGHTBOX ---
+    function openLightbox(idx) {
+        currentIndex = idx;
+        const src = PHOTOS[idx];
+        const img = document.getElementById("lbImage");
+        img.style.opacity = 0;
+        img.src = src;
+        
+        document.getElementById("lightbox").classList.remove("hidden");
+        document.getElementById("lbCounter").innerText = `${idx + 1} / ${PHOTOS.length}`;
+        document.getElementById("lbDownloadBtn").href = src;
+        
+        loadPhotoData(src);
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+        document.getElementById("lightbox").classList.add("hidden");
+        document.body.style.overflow = "auto";
+    }
+
+    function changeSlide(dir) {
+        let newIdx = currentIndex + dir;
+        if(newIdx < 0) newIdx = PHOTOS.length - 1;
+        if(newIdx >= PHOTOS.length) newIdx = 0;
+        openLightbox(newIdx);
+    }
+
+    // --- SUPABASE & DADOS ---
+    async function updateCounts() {
+        const { data } = await sb.from("likes").select("foto").eq("evento_slug", EVENT_SLUG);
+        likesCache = {};
+        data.forEach(r => likesCache[r.foto] = (likesCache[r.foto] || 0) + 1);
+        PHOTOS.forEach((src, idx) => {
+            const el = document.getElementById(`like_feed_${idx}`);
+            if(el) el.innerText = likesCache[src] || 0;
+        });
+    }
+
+    async function loadPhotoData(src) {
+        // Likes
+        const { count } = await sb.from("likes").select("*", { count: 'exact', head: true }).eq("evento_slug", EVENT_SLUG).eq("foto", src);
+        document.getElementById("lbLikeCount").innerText = count || 0;
+        document.getElementById("lbHeart").style.fontVariationSettings = (await didILike(src)) ? "'FILL' 1" : "'FILL' 0";
+        document.getElementById("lbHeart").style.color = (await didILike(src)) ? "#f04e23" : "#9ca3af";
+
+        // Comments
+        const { data } = await sb.from("foto_comentarios").select("*").eq("evento_slug", EVENT_SLUG).eq("foto", src).order('criado_em', {ascending: false});
+        const box = document.getElementById("lbComments");
+        box.innerHTML = data.length ? data.map(c => `<div class="bg-white/5 p-2 rounded-lg"><b class="text-primary">${c.nome || 'Anônimo'}</b>: ${c.comentario}</div>`).join('') : '<p class="text-center opacity-50">Seja o primeiro a comentar!</p>';
+    }
+
+    async function didILike(src) {
+        const { data } = await sb.from("likes").select("id").eq("evento_slug", EVENT_SLUG).eq("foto", src).eq("device_id", DEVICE_ID);
+        return data && data.length > 0;
+    }
+
+    async function toggleLike() {
+        const src = PHOTOS[currentIndex];
+        const liked = await didILike(src);
+        if(liked) {
+            await sb.from("likes").delete().eq("evento_slug", EVENT_SLUG).eq("foto", src).eq("device_id", DEVICE_ID);
+        } else {
+            await sb.from("likes").insert({ evento_slug: EVENT_SLUG, foto: src, device_id: DEVICE_ID });
+        }
+        loadPhotoData(src);
+        updateCounts();
+    }
+
+    async function sendComment() {
+        const nomeEl = document.getElementById("cmtName");
+        const txtEl = document.getElementById("cmtInput");
+        const nome = nomeEl.value.trim();
+        const txt = txtEl.value.trim();
+
+        if(!nome) { alert("Digite seu nome para comentar!"); nomeEl.focus(); return; }
+        if(!txt) return;
+
+        await sb.from("foto_comentarios").insert({ 
+            evento_slug: EVENT_SLUG, 
+            foto: PHOTOS[currentIndex], 
+            nome: nome, 
+            comentario: txt, 
+            device_id: DEVICE_ID 
+        });
+        
+        txtEl.value = "";
+        loadPhotoData(PHOTOS[currentIndex]);
+    }
+
+    // --- SELEÇÃO E DOWNLOAD ---
+    function toggleSelection(idx) {
+        if(selection.has(idx)) selection.delete(idx);
+        else selection.add(idx);
+        renderGallery();
+    }
+
+    function downloadSelected() {
+        if(!confirm(`Baixar ${selection.size} fotos?`)) return;
+        Array.from(selection).forEach((idx, i) => {
+            setTimeout(() => {
+                const a = document.createElement('a');
+                a.href = PHOTOS[idx];
+                a.download = "";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }, i * 500);
+        });
+    }
+
+    // --- MURAL ---
+    async function loadMural() {
+        const { data } = await sb.from("mural").select("*").eq("evento_slug", EVENT_SLUG).order('criado_em', {ascending: false}).limit(10);
+        document.getElementById("muralList").innerHTML = data.map(m => `
+            <div class="bg-surface border border-white/5 p-3 rounded-xl">
+                <span class="font-bold text-primary">${m.nome || 'Anônimo'}</span>
+                <p class="text-gray-300 text-sm">${m.comentario}</p>
+            </div>
+        `).join('');
+    }
+
+    async function sendMural() {
+        const txt = document.getElementById("muralInput").value;
+        if(!txt) return;
+        await sb.from("mural").insert({ evento_slug: EVENT_SLUG, nome: "Visitante", comentario: txt });
+        document.getElementById("muralInput").value = "";
+        loadMural();
+    }
+
+    function shareViaWhatsApp() {
+        const url = window.location.origin + "/" + PHOTOS[currentIndex];
+        const texto = "Olha essa foto: " + url;
+        const linkZap = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
+        window.open(linkZap, '_blank');
+    }
+
+    function focusComment() { document.getElementById("cmtInput").focus(); }
+
+    // --- INICIALIZAÇÃO ---
+    renderFeed();
+    updateCounts();
+    loadMural();
+  </script>
+</body>
+</html>
