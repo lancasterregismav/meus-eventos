@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes"/>
+  <title>maturenga</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@300;400;600;800&family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+  function toggleCommentForm() {
+  document.getElementById("commentFormOverlay").classList.remove("hidden");
+}
+
+function closeCommentForm() {
+  document.getElementById("commentFormOverlay").classList.add("hidden");
+}
+
+  
+  tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: "#D46A1F", background: "#F3F6F1", surface: "#E7EEE6" }, fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['"Manrope"', 'sans-serif'], } } } }</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+  /* Permite que a imagem em zoom seja arrastada */
+body.zoomed {
+  overflow: hidden;
+}
+    body { background-color: #F3F6F1; color: #0a0a0a; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .dl-spin::before { content:""; position:absolute; inset:-3px; border-radius:9999px; background: conic-gradient(from 0deg, #f04e23, transparent 60%); animation: spin 1.5s linear infinite; z-index:-1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+     @keyframes bell-swing {
+    0%   { transform: rotate(0deg); }
+    10%  { transform: rotate(18deg); }
+    20%  { transform: rotate(-16deg); }
+    30%  { transform: rotate(14deg); }
+    40%  { transform: rotate(-12deg); }
+    50%  { transform: rotate(10deg); }
+    60%  { transform: rotate(-8deg); }
+    70%  { transform: rotate(6deg); }
+    80%  { transform: rotate(-4deg); }
+    90%  { transform: rotate(2deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .bell-anim {
+    transform-origin: 50% 10%;
+    animation: bell-swing 1.2s ease-in-out infinite;
+  }
+
+  /* Respeita quem desativa animações no sistema */
+  @media (prefers-reduced-motion: reduce) {
+    .bell-anim { animation: none !important; }
+  }
+  /* Estilo da filmstrip */
+.filmstrip-container::-webkit-scrollbar {
+  height: 6px;
+}
+.filmstrip-container::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 10px;
+}
+.filmstrip-container::-webkit-scrollbar-track {
+  background-color: #f3f6f1;
+}
+/* Permite scroll na imagem quando estiver em zoom */
+#lbImage.zoomed {
+  cursor: grab;
+  /* Para dispositivos móveis, permite arrastar a imagem */
+  touch-action: pan-x pan-y;
+}
+
+#lbImage.zoomed:active {
+  cursor: grabbing;
+}
+
+</style>
+<header class="pt-4 pb-2 px-6 text-center relative">
+  <!-- Logo "bolt" (raio + texto) -->
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <img src="bolt-thin.png" class="w-8 h-auto opacity-80" onerror="this.style.display='none'"/>
+    <h2 class="font-serif italic font-bold text-xl text-gray-700">bolt</h2>
+  </div>
+  <!-- Nome do evento com sombra projetada -->
+  <h1 class="font-serif italic font-bold text-4xl md:text-5xl lg:text-6xl tracking-tighter leading-none text-gray-800 drop-shadow-md">
+    maturenga
+  </h1>
+  <p class="font-serif  text-[11px] md:text-[17px] tracking-[0.08em] mt-2 opacity-90">
+    por Lancaster - 2026.
+  </p>
+  <!-- Botão de notificações (agora dentro do header) -->
+  <div class="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+    <span class="text-[10px] font-bold text-gray-700 tracking-wide">Mensagens</span>
+    <button onclick="openNotif()" id="btnNotif" aria-label="Notificações"
+            class="mt-1 p-2 rounded-full bg-white/80 border-2 border-primary shadow-md text-primary hover:bg-white/90 transition">
+      <span class="material-symbols-outlined bell-anim text-xl">notifications</span>
+      <span id="notifBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] leading-[18px] font-bold"></span>
+    </button>
+  </div>
+</header>
+  
+  <!-- Banner estilo YouTube: novas fotos -->
+<div id="newPhotosBar" class="hidden px-4 max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto">
+  <button onclick="applyNewPhotos()" class="w-full mt-3 flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-full font-bold shadow-lg hover:opacity-95 transition">
+    <span id="newPhotosText">📸 Fotos novas</span>
+    <span class="material-symbols-outlined">south</span>
+  </button>
+</div>
+
+  
+  <main id="mainFeed" class="px-4 max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-8"><div id="feedGrid"></div><div class="text-center py-8 text-gray-500 text-sm italic">Fim das fotos recentes</div></main>
+  
+  
+  
+  <section id="gallerySection" class="hidden px-4 max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-4"><h2 class="text-[18px] font-serif italic text-warm">Todas as fotos</h2><button onclick="downloadSelected()" id="btnDlSel" disabled class="text-xs font-bold bg-white/10 text-white px-3 py-2 rounded-lg disabled:opacity-30">Baixar Selecionadas (<span id="selCount">0</span>)</button></div>
+    <div id="thumbGrid" class="grid grid-cols-3 md:grid-cols-4 gap-1"></div>
+  </section>
+  <div id="lightbox" class="fixed inset-0 z-50 bg-[#F3F6F1]/95 backdrop-blur-md hidden flex flex-col">
+  <div class="flex justify-between items-center p-4 border-b border-black/10">
+    <button onclick="closeLightbox()" class="p-2 rounded-full bg-black/5 text-gray-900 hover:bg-black/10">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <span class="text-sm font-serif italic text-gray-600" id="lbCounter">1 / 10</span>
+  </div>
+
+  <!-- FILMSTRIP MOVIDA PARA O TOPO -->
+<div class="px-4 py-2 min-h-[80px] overflow-x-auto whitespace-nowrap flex items-start">
+  <div id="filmstrip" class="flex gap-2"></div>
+</div>
+
+  <div class="w-full h-full flex items-center justify-center overflow-visible">
+    <img id="lbImage"
+         src=""
+         class="max-w-full max-h-full object-contain transition-all duration-300 cursor-zoom-in"
+         style="transform: scale(1); transform-origin: center; touch-action: none;"
+         onclick="toggleZoom()"
+         onload="this.style.opacity=1; this.style.opacity='';"/>
+  </div>
+
+  
+
+  <!-- BOTÕES FLUTUANTES (dentro do lightbox) -->
+  <div class="absolute bottom-[110px] left-1/2 transform -translate-x-1/2 flex gap-6 z-10">
+    <button onclick="toggleLike()" class="flex flex-col items-center text-white hover:text-yellow-300 transition drop-shadow-lg">
+      <span class="material-symbols-outlined text-2xl bg-primary/75 p-1 rounded-full">favorite</span>
+      <span class="text-xs mt-1 font-medium">Curtir</span>
+    </button>
+    <button onclick="shareViaWhatsApp()" class="flex flex-col items-center text-white hover:text-green-300 transition drop-shadow-lg">
+      <span class="bg-black/40 p-2 rounded-full">
+  <svg viewBox="0 0 32 32" class="w-6 h-6" aria-hidden="true">
+    <path fill="currentColor" d="M19.11 17.53c-.26-.13-1.5-.74-1.73-.83-.23-.09-.4-.13-.57.13-.17.26-.66.83-.81 1-.15.17-.3.2-.56.07-.26-.13-1.08-.4-2.05-1.28-.76-.68-1.27-1.52-1.42-1.78-.15-.26-.02-.4.11-.53.12-.12.26-.3.39-.45.13-.15.17-.26.26-.43.09-.17.04-.33-.02-.46-.06-.13-.57-1.37-.78-1.88-.2-.48-.41-.41-.57-.42h-.48c-.17 0-.44.07-.66.33-.23.26-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.57.13.17 1.75 2.67 4.23 3.74.59.25 1.05.4 1.41.51.59.19 1.12.16 1.54.1.47-.07 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.2-.06-.11-.22-.17-.48-.3z"/>
+    <path fill="currentColor" d="M16 3C9.37 3 4 8.37 4 15c0 2.33.67 4.5 1.83 6.33L4 29l7.86-1.78A11.9 11.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 21.82c-1.95 0-3.77-.57-5.31-1.55l-.38-.24-4.66 1.06 1.02-4.54-.25-.4A9.8 9.8 0 0 1 6.18 15c0-5.42 4.4-9.82 9.82-9.82s9.82 4.4 9.82 9.82-4.4 9.82-9.82 9.82z"/>
+  </svg>
+</span>
+
+      <span class="text-xs mt-1 font-medium">WhatsApp</span>
+    </button>
+    <a id="lbDownloadBtn" href="#" download class="flex flex-col items-center text-white hover:text-cyan-300 transition drop-shadow-lg">
+      <span class="material-symbols-outlined text-2xl bg-black/40 p-1 rounded-full">download</span>
+      <span class="text-xs mt-1 font-medium">Baixar</span>
+    </a>
+  </div>
+
+  
+</div> <!-- Fecha o #lightbox -->
+  <!-- Perfil / Contato (movido para o final) -->
+
+  <section class="mx-auto w-full max-w-xl md:max-w-3xl lg:max-w-4xl px-6 mb-8">
+    <div class="flex items-center gap-4 bg-surface/50 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
+        <div class="relative">
+            <img src="perfil.jpg" class="w-16 h-16 rounded-full object-cover border-2 border-primary shadow-lg" onerror="this.src='https://ui-avatars.com/api/?name=L+A&background=f04e23&color=fff  '"/>
+            <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-surface rounded-full"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-[16px] text-warm truncate">Experiência Lancaster</h3>
+            <p class="text-[13px] text-muted mb-2">Tecnologia a serviço da emoção</p>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 text-sm font-semibold">
+                <a href="https://wa.me/5538999320748  " target="_blank" class="text-primary hover:text-white transition flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">chat</span> Contato</a>
+                <a href="https://instagram.com/lancaster_a.i_studio  " target="_blank" class="text-primary hover:text-white transition flex items-center gap-1 break-all"><span class="material-symbols-outlined text-[16px]">photo_camera</span>lancaster_a.i_studio</a>
+            </div>
+        </div>
+    </div>
+  </section>
+
+
+  <section class="px-6 py-10 border-t border-white/5 bg-surface/30 mt-10">
+    <h2 class="text-2xl font-serif italic text-gray-900 mb-4 text-center">Mural de Recados</h2>
+    <div id="muralList" class="space-y-3 max-w-xl mx-auto"></div>
+    <div class="max-w-xl mx-auto mt-4 flex flex-col gap-2"><input id="muralName" placeholder="Seu nome (Obrigatório)" class="w-full bg-white/70 border border-black/10 rounded-xl px-4 py-3 text-gray-900 placeholder:text-gray-500"/><div class="flex gap-2"><input id="muralInput" placeholder="Escreva algo para todos..." class="flex-1 bg-white/70 border border-black/10 rounded-xl px-4 py-3 text-gray-900 placeholder:text-gray-500"/><button onclick="sendMural()" class="bg-primary text-white px-4 rounded-xl font-bold">Enviar</button></div></div>
+  </section>
+
+
+  <div id="notifPanel" class="fixed inset-0 z-[55] hidden">
+    <div class="absolute inset-0 bg-[#F3F6F1]/95 backdrop-blur-md" onclick="closeNotif()"></div>
+    <div class="relative mx-auto mt-16 w-[92%] max-w-xl rounded-2xl border border-black/10 bg-white/70 shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-black/10">
+        <div class="font-serif italic text-[18px] text-gray-900">Notificações</div>
+        <button onclick="closeNotif()" class="p-2 rounded-full bg-black/5 text-gray-900 hover:bg-black/10">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="notifList" class="max-h-[70vh] overflow-y-auto p-3 space-y-2 text-sm text-gray-800"></div>
+      <div class="px-4 py-3 border-t border-black/10 text-[12px] text-gray-600">
+        Toque em uma notificação para abrir a foto (mural não abre foto).
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] hidden">
+    <div class="bg-black/70 border border-white/10 text-white px-4 py-2 rounded-full text-[14px] backdrop-blur-md shadow-xl">
+      <span id="toastText">Curtido ✨</span>
+    </div>
+  </div>
+
+  <script>
+    let PHOTOS = ["IMG_1847.webp", "IMG_1844.webp", "IMG_1840.webp", "IMG_1838.webp", "IMG_1414.webp", "IMG_1248.webp", "IMG_0604.webp", "IMG_0603.webp", "IMG_0575.webp", "IMG_0574.webp"];
+    const EVENT_SLUG = "maturenga";
+    const SUPABASE_URL = "https://chniaasbbezwqrlrdrib.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNobmlhYXNiYmV6d3FybHJkcmliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MTYwODUsImV4cCI6MjA4MjI5MjA4NX0.0IfAyD_a46PY4m2gsD0tqdOCwXjfFufEeUJSkX2vvms";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let currentIndex = 0; let likesCache = {}; let selection = new Set();
+    let isZoomed = false;
+     // ====== SWIPE PARA NAVEGAR NAS FOTOS ======
+let touchStartX = 0;
+let touchEndX = 0;
+let currentPhotoSrc = "";
+
+function openCommentModal(src) {
+  currentPhotoSrc = src;
+  document.getElementById("commentModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden"; // trava scroll da página
+}
+
+function closeCommentModal() {
+  document.getElementById("commentModal").classList.add("hidden");
+  document.body.style.overflow = ""; // libera scroll
+}
+
+async function sendCommentFromModal(src) {
+  const nome = document.getElementById("modalCmtName").value.trim();
+  const txt = document.getElementById("modalCmtInput").value.trim();
+  
+  if (!nome || !txt) {
+    alert("Por favor, preencha nome e mensagem.");
+    return;
+  }
+
+  try {
+    await sb.from("foto_comentarios").insert({
+      evento_slug: EVENT_SLUG,
+      foto: src,
+      nome: nome,
+      comentario: txt
+    });
+    showToast("Recado enviado! ✨");
+    document.getElementById("modalCmtName").value = "";
+    document.getElementById("modalCmtInput").value = "";
+    closeCommentModal();
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao enviar. Tente novamente.");
+  }
+}
+function handleTouchStart(e) {
+  if (e.touches.length > 0) {
+    touchStartX = e.touches[0].clientX;
+  }
+}
+
+function handleTouchEnd(e) {
+  if (e.changedTouches.length > 0) {
+    touchEndX = e.changedTouches[0].clientX;
+    handleSwipe();
+  }
+}
+
+function handleSwipe() {
+  const minSwipeDistance = 50; // distância mínima para considerar swipe
+  const diff = touchStartX - touchEndX;
+
+  if (Math.abs(diff) > minSwipeDistance) {
+    if (diff > 0) {
+      // Swipe para a esquerda → próxima foto
+      changeSlide(1);
+    } else {
+      // Swipe para a direita → foto anterior
+      changeSlide(-1);
+    }
+  }
+}
+function toggleZoom() {
+  const img = document.getElementById("lbImage");
+  if (!img) return;
+
+  if (isZoomed) {
+    // Voltar ao normal
+    img.style.transform = "scale(1)";
+    img.style.cursor = "zoom-in";
+    isZoomed = false;
+    img.classList.remove("zoomed");
+    document.body.classList.remove("zoomed");
+  } else {
+    // Dar zoom
+    img.style.transform = "scale(1.5)";
+    img.style.cursor = "zoom-out";
+    isZoomed = true;
+    img.classList.add("zoomed");
+    document.body.classList.add("zoomed");
+  }
+}
+    
+    const DEVICE_ID = localStorage.getItem("bolt_uid") || Math.random().toString(36).slice(2); localStorage.setItem("bolt_uid", DEVICE_ID);
+    // Salva e carrega o nome do usuário
+const USER_NAME_KEY = "bolt_user_name";
+let savedUserName = localStorage.getItem(USER_NAME_KEY) || "";
+
+function saveUserName(name) {
+  if (name && name.trim()) {
+    localStorage.setItem(USER_NAME_KEY, name.trim());
+    savedUserName = name.trim();
+  }
+}
+    // ====== MODERAÇÃO (PALAVRAS PROIBIDAS + NOME OBRIGATÓRIO) ======
+    // Edite a lista abaixo como quiser (tudo minúsculo; sem acento também funciona).
+    const BAD_WORDS = [
+      "porra","caralho","puta","put4","puta que pariu","pqp","merda","foda","foder","fod4",
+      "buceta","pinto","pau","cu","arrombado","desgraça","desgraca","viado","v1ado","vadia","vagabunda"
+    ];
+    const FORBIDDEN_NAMES = new Set(["anonimo","anônimo","anonymous","guest","visitante"]);
+
+    function _normTxt(s){
+      return (s||"")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+        .toLowerCase()
+        .replace(/[^a-z0-9\\s]/g," ")
+        .replace(/\\s+/g," ")
+        .trim();
+    }
+
+    function hasBadWords(text){
+      const t = _normTxt(text);
+      if(!t) return false;
+      return BAD_WORDS.some(w => t.includes(_normTxt(w)));
+    }
+
+    function isForbiddenName(name){
+      const n = _normTxt(name);
+      if(!n) return true;
+      return FORBIDDEN_NAMES.has(n);
+    }
+
+    function validateNameOrAlert(name, inputEl){
+      if(!name || !name.trim()){
+        alert("Digite seu nome!");
+        inputEl && inputEl.focus();
+        return false;
+      }
+      if(isForbiddenName(name)){
+        alert('Por favor, digite seu nome (não use "Anônimo/Visitante").');
+        inputEl && inputEl.focus();
+        return false;
+      }
+      return true;
+    }
+
+    function validateTextOrAlert(text){
+      if(!text || !text.trim()) return false;
+      if(hasBadWords(text)){
+        alert("Seu recado contém palavras não permitidas. Tente novamente 🙂");
+        return false;
+      }
+      return true;
+    }
+
+    function showToast(msg){ const t=document.getElementById("toast"); const tt=document.getElementById("toastText"); if(!t||!tt) return; tt.textContent=msg; t.classList.remove("hidden"); clearTimeout(window.__toastTimer); window.__toastTimer=setTimeout(()=>t.classList.add("hidden"), 1400); }
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+    function sortPhotosByNameDesc() {
+      // Agora a ordem vem do backend (JSON), mas mantemos isso como segurança
+      PHOTOS.sort((a, b) => collator.compare(b, a));
+    }
+
+    function sortPhotosByLikesThenName() {
+      PHOTOS.sort((a, b) => {
+        const likesA = likesCache[a] || 0;
+        const likesB = likesCache[b] || 0;
+        if (likesB !== likesA) return likesB - likesA; // curtidas DESC
+        return collator.compare(b, a); // nome DESC
+      });
+    }
+
+
+function renderFeed() {
+  const grid = document.getElementById("feedGrid");
+  grid.innerHTML = PHOTOS.map((src, idx) => {
+    const lc = likesCache[src] || 0;
+    const badge = (lc >= 3) ? `<div class="absolute top-4 left-4 rounded-full bg-black/50 backdrop-blur-md px-3 py-1.5 flex items-center gap-1.5 border border-white/10 shadow-lg">
+        <span class="text-[12px]">❤️</span>
+        <span class="text-[12px] font-bold text-warm">Mais curtidas</span>
+      </div>` : '';
+    return `<div class="fadein group relative aspect-[4/5] w-full overflow-hidden rounded-[2rem] bg-surface shadow-2xl mb-8 cursor-pointer" onclick="openLightbox(${idx})">
+      <img src="${encodeURI(src)}" class="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+      <div class="absolute top-5 left-5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-1.5 border border-white/20 shadow-lg">
+        <span class="material-symbols-outlined text-white" style="font-size: 14px; font-variation-settings: 'FILL' 1;">verified</span>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-white">AO VIVO!</span>
+      </div>
+      ${badge}
+      <div class="absolute top-4 right-4 flex gap-2">
+        <div class="bg-black/40 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-1 border border-white/10">
+          <span class="material-symbols-outlined text-[18px]" style="color:#F5B301; font-variation-settings:'FILL' 1;">favorite</span>
+          <span class="text-[14px] font-bold text-white" id="like_feed_${idx}">${lc}</span>
+        </div>
+      </div>
+      ${isNewPhoto(src) ? '<div class="absolute top-16 right-5 bg-primary text-white px-3 py-1 rounded-full text-[11px] font-extrabold tracking-widest shadow-lg">NOVA</div>' : ''}
+
+
+      
+      <div class="absolute bottom-0 w-full p-6 flex justify-between items-end">
+  <button onclick="openCommentModal('${src}')" 
+          class="bg-white/90 hover:bg-white text-gray-800 px-3 py-1.5 rounded-full text-[12px] font-semibold shadow-md transition">
+    Comentar
+  </button>
+  <p class="text-white/60 text-[12px] font-sans tracking-wide">Toque para ver, curtir e baixar</p>
+</div>
+    </div>`;
+  }).join('');
+}
+
+    function renderGallery() { const grid = document.getElementById("thumbGrid"); grid.innerHTML = PHOTOS.map((src, idx) => `<div onclick="toggleSelection(${idx})" class="relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 ${selection.has(src) ? 'border-primary opacity-100' : 'border-transparent opacity-70'}"><img src="${src}" class="w-full h-full object-cover"/>${selection.has(src) ? '<div class="absolute inset-0 bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-white font-bold">check</span></div>' : ''}</div>`).join(''); document.getElementById("selCount").innerText = selection.size; document.getElementById("btnDlSel").disabled = selection.size === 0; }
+    function showFeed() { document.getElementById("mainFeed").classList.remove("hidden"); document.getElementById("gallerySection").classList.add("hidden"); document.getElementById("navFeed").className = "bg-primary text-white px-6 py-2.5 rounded-full text-[15px] font-bold shadow-lg hover:opacity-95 transition-all";
+    document.getElementById("navGal").className  = "bg-white/70 text-gray-900 border border-black/10 px-6 py-2.5 rounded-full text-[15px] font-bold hover:bg-white/90 transition-all";
+
+ }
+    function showGallery() { document.getElementById("mainFeed").classList.add("hidden"); document.getElementById("gallerySection").classList.remove("hidden"); document.getElementById("navGal").className  = "bg-primary text-white px-6 py-2.5 rounded-full text-[15px] font-bold shadow-lg hover:opacity-95 transition-all";
+    document.getElementById("navFeed").className = "bg-white/70 text-gray-900 border border-black/10 px-6 py-2.5 rounded-full text-[15px] font-bold hover:bg-white/90 transition-all";
+
+ renderGallery(); }
+    function openLightbox(idx) { currentIndex = idx; const src = PHOTOS[idx]; const img = document.getElementById("lbImage"); img.style.opacity = 0; img.src = src; 
+    document.getElementById("lightbox").classList.remove("hidden"); document.getElementById("lbCounter").innerText = `${idx + 1} / ${PHOTOS.length}`; document.getElementById("lbDownloadBtn").href = src; loadPhotoData(src); 
+    // Gera as miniaturas da filmstrip
+    generateFilmstrip(idx);
+      document.body.style.overflow = "hidden"; }
+    function closeLightbox() {
+      document.getElementById("lightbox").classList.add("hidden");
+      document.body.style.overflow = "";
+      isZoomed = false; // 👈 reseta o zoom
+}
+
+function openLightbox(idx) {
+  currentIndex = idx;
+  const src = PHOTOS[idx];
+  const img = document.getElementById("lbImage");
+  img.style.opacity = 0;
+  img.src = src;
+  // Remove o listener anterior para evitar duplicatas
+  img.removeEventListener('touchstart', handleTouchStart);
+  img.removeEventListener('touchend', handleTouchEnd);
+  // Adiciona os novos listeners
+  img.addEventListener('touchstart', handleTouchStart);
+  img.addEventListener('touchend', handleTouchEnd);
+  document.getElementById("lightbox").classList.remove("hidden");
+ 
+  document.getElementById("lbCounter").innerText = `${idx + 1} / ${PHOTOS.length}`;
+  document.getElementById("lbDownloadBtn").href = src;
+  loadPhotoData(src);
+  generateFilmstrip(idx);
+  document.body.style.overflow = "hidden";
+}
+    function changeSlide(dir) { let newIdx = currentIndex + dir; if(newIdx < 0) newIdx = PHOTOS.length - 1; if(newIdx >= PHOTOS.length) newIdx = 0; openLightbox(newIdx); }
+    async function updateCounts() {
+      const { data } = await sb.from("likes").select("foto").eq("evento_slug", EVENT_SLUG);
+
+      likesCache = {};
+      if (data) data.forEach(r => likesCache[r.foto] = (likesCache[r.foto] || 0) + 1);
+
+      // Regra: curtidas sobem primeiro; empate = nome DESC
+      sortPhotosByLikesThenName();
+
+      // Re-renderiza (IDs de like_feed_ mudam com a ordem)
+      renderFeed();
+
+      // Se estiver na galeria, re-renderiza também
+      const gal = document.getElementById("gallerySection");
+      if (gal && !gal.classList.contains("hidden")) {
+        renderGallery();
+      }
+
+      // Atualiza contadores do feed já renderizado
+      PHOTOS.forEach((src, idx) => {
+        const el = document.getElementById(`like_feed_${idx}`);
+        if (el) el.innerText = likesCache[src] || 0;
+      });
+
+      // Se lightbox estiver aberto, atualiza contagem/estado
+      const lb = document.getElementById("lightbox");
+      if (lb && !lb.classList.contains("hidden")) {
+        const currentSrc = PHOTOS[currentIndex];
+        if (currentSrc) loadPhotoData(currentSrc);
+      }
+    }
+    
+    function generateFilmstrip(currentIndex) {
+  const filmstrip = document.getElementById("filmstrip");
+  if (!filmstrip) return;
+
+  // Limpa o conteúdo atual
+  filmstrip.innerHTML = "";
+
+  // Define quantas miniaturas mostrar (ex: 5 antes, 5 depois)
+  const range = 5;
+  const start = Math.max(0, currentIndex - range);
+  const end = Math.min(PHOTOS.length - 1, currentIndex + range);
+
+  // Gera miniaturas
+  for (let i = start; i <= end; i++) {
+    const imgSrc = PHOTOS[i];
+    const thumb = document.createElement("img");
+    thumb.src = imgSrc;
+    thumb.classList.add(
+      "w-16", "h-16", "object-cover", "rounded-lg", "cursor-pointer",
+      "border-2", "transition-all"
+    );
+    
+    // Destaca a miniatura atual
+    if (i === currentIndex) {
+      thumb.classList.add("border-primary", "scale-110");
+    } else {
+      thumb.classList.add("border-transparent", "hover:border-primary", "hover:scale-105");
+    }
+
+    // Ao clicar, abre a foto correspondente
+    thumb.onclick = () => {
+      openLightbox(i);
+    };
+
+    filmstrip.appendChild(thumb);
+  }
+}
+    
+    async function loadPhotoData(src) { const { count } = await sb.from("likes").select("*", { count: 'exact', head: true }).eq("evento_slug", EVENT_SLUG).eq("foto", src); document.getElementById("lbLikeCount").innerText = count || 0; document.getElementById("lbHeart").style.fontVariationSettings = (await didILike(src)) ? "'FILL' 1" : "'FILL' 0"; document.getElementById("lbHeart").style.color = (await didILike(src)) ? "#F5B301" : "#9ca3af"; const { data } = await sb.from("foto_comentarios").select("*").eq("evento_slug", EVENT_SLUG).eq("foto", src).order('criado_em', {ascending: false}); const box = document.getElementById("lbComments"); box.innerHTML = data && data.length ? data.map(c => `<div class="bg-white/70 border border-black/10 p-2 rounded-lg"><b class="text-primary">${c.nome || 'Anônimo'}</b>: <span class="text-gray-900">${c.comentario}</span></div>`).join('') : '<p class="text-center opacity-50">Seja o primeiro a comentar!</p>'; }
+    async function didILike(src) { const { data } = await sb.from("likes").select("id").eq("evento_slug", EVENT_SLUG).eq("foto", src).eq("device_id", DEVICE_ID); return data && data.length > 0; }
+
+async function toggleLike() {
+  const src = PHOTOS[currentIndex];
+  const liked = await didILike(src);
+
+  if (liked) {
+    await sb.from("likes")
+      .delete()
+      .eq("evento_slug", EVENT_SLUG)
+      .eq("foto", src)
+      .eq("device_id", DEVICE_ID);
+
+    showToast("Curtida removida");
+  } else {
+    await sb.from("likes")
+      .insert({ evento_slug: EVENT_SLUG, foto: src, device_id: DEVICE_ID });
+
+    // micro-emoção
+    showToast("Curtido ✨");
+  }
+
+  await loadPhotoData(src);
+  await updateCounts();
+}
+
+
+
+async function sendComment() {
+  const nomeEl = document.getElementById("cmtName");
+  const txtEl  = document.getElementById("cmtInput");
+  const nome = (nomeEl.value || "").trim();
+  const txt  = (txtEl.value || "").trim();
+
+  if (!validateNameOrAlert(nome, nomeEl)) return;
+  if (!validateTextOrAlert(txt)) return;
+  
+  saveUserName(nome);
+  
+  await sb.from("foto_comentarios").insert({
+    evento_slug: EVENT_SLUG,
+    foto: PHOTOS[currentIndex],
+    nome: nome,
+    comentario: txt,
+    device_id: DEVICE_ID
+  });
+
+  txtEl.value = "";
+    loadPhotoData(PHOTOS[currentIndex]);
+}
+    function toggleSelection(idx) { const src = PHOTOS[idx]; if(selection.has(src)) selection.delete(src); else selection.add(src); renderGallery(); }
+    function downloadSelected() { if(!confirm(`Baixar ${selection.size} fotos?`)) return; Array.from(selection).forEach((src, i) => { setTimeout(() => { const a = document.createElement('a'); a.href = src; a.download = ""; document.body.appendChild(a); a.click(); a.remove(); }, i * 500); }); }
+    async function loadMural() { const { data } = await sb.from("mural").select("*").eq("evento_slug", EVENT_SLUG).order('criado_em', {ascending: false}).limit(10); if(data) { document.getElementById("muralList").innerHTML = data.map(m => `<div class="bg-surface border border-white/5 p-3 rounded-xl"><span class="font-bold text-primary">${m.nome || 'Anônimo'}</span><p class="text-gray-800 text-sm">${m.comentario}</p></div>`).join(''); } }
+
+
+// --- ADICIONAR ESTA FUNÇÃO AO JAVASCRIPT ---
+async function sendMural() {
+    const nomeEl = document.getElementById("muralName");
+    const txtEl = document.getElementById("muralInput");
+
+    // Pega os valores e remove espaços extras
+    const nome = (nomeEl.value || "").trim();
+    const txt = (txtEl.value || "").trim();
+
+    // Validações básicas (mesma lógica dos comentários)
+    if (!nome) { alert("Por favor, digite seu nome."); return; }
+    if (!txt) { alert("Por favor, escreva uma mensagem."); return; }
+    
+    saveUserName(nome);
+    
+    // Feedback visual (desabilita botão)
+    const btn = document.querySelector("button[onclick='sendMural()']");
+    const textoOriginal = btn.innerText;
+    btn.innerText = "Enviando...";
+    btn.disabled = true;
+    
+    try {
+        // Envia para o Supabase
+        await sb.from("foto_comentarios").insert({
+            evento_slug: EVENT_SLUG, // Certifique-se que esta variável existe
+            nome: nome,
+            comentario: txt,
+            device_id: DEVICE_ID     // Usa o ID gerado para identificar o autor
+        });
+
+        if (error) throw error;
+
+        // Sucesso: Limpa o campo e recarrega a lista
+        txtEl.value = "";
+        showToast("Recado enviado! ✨");
+        await loadMural();
+
+    } catch (e) {
+        console.error("Erro ao enviar:", e);
+        alert("Erro ao enviar recado. Tente novamente.");
+    } finally {
+        // Restaura o botão
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
+    }
+}
+    function shareViaWhatsApp() { const url = window.location.origin + "/" + PHOTOS[currentIndex]; window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Olha essa foto: " + url), '_blank'); }
+    function focusComment() { document.getElementById("cmtInput").focus(); }
+
+    // ====== NOTIFICAÇÕES (curtidas + comentários) ======
+    let lastNotifSeen = parseInt(localStorage.getItem("bolt_notif_seen") || "0", 10) || 0;
+
+    function _ts(row){
+      const v = row && (row.criado_em || row.created_at || row.createdAt);
+      const d = v ? new Date(v) : null;
+      const t = d && !isNaN(d.getTime()) ? d.getTime() : 0;
+      return t;
+    }
+
+    function _fmtTime(ts){
+      if(!ts) return "";
+      const d = new Date(ts);
+      return d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    }
+
+    async function _safeSelect(table, selectCols, orderCol){
+      // Retorna sempre {data, error} e loga erros no console (ajuda debug).
+      let res = await sb.from(table)
+        .select(selectCols)
+        .eq("evento_slug", EVENT_SLUG)
+        .order(orderCol, { ascending: false })
+        .limit(25);
+
+      if(res && res.error){
+        console.warn("[notif] erro select", table, res.error);
+
+        // fallback 1: ordenar por criado_em (mais comum no seu schema)
+    res = await sb.from(table)
+      .select(selectCols)
+      .eq("evento_slug", EVENT_SLUG)
+      .order("criado_em", { ascending: false })
+      .limit(25);
+
+
+        if(res && res.error){
+          console.warn("[notif] erro fallback created_at", table, res.error);
+
+          // fallback 2: sem order
+          res = await sb.from(table)
+            .select(selectCols)
+            .eq("evento_slug", EVENT_SLUG)
+            .limit(25);
+
+          if(res && res.error){
+            console.warn("[notif] erro fallback sem order", table, res.error);
+          }
+        }
+      }
+      return res;
+    }
+
+
+
+    async function loadNotifications() {
+    const notifList = document.getElementById("notifList");
+    const badge = document.getElementById("notifBadge");
+    if (!notifList || !badge) return;
+    
+    // 1) Busca comentários recentes (só isso)
+    const cmtsRes = await _safeSelect(
+        "foto_comentarios",
+        "foto,nome,comentario,criado_em,device_id",
+        "criado_em"
+    );
+    
+    if (cmtsRes && cmtsRes.error) {
+        notifList.innerHTML = `<div class="text-center text-red-700 py-6">
+        Erro ao carregar comentários.<br/>
+        Abra o Console do navegador para detalhes.
+        </div>`;
+        badge.classList.add("hidden");
+        return;
+    }
+    
+    const cmts = (cmtsRes && cmtsRes.data) ? cmtsRes.data : [];
+    
+    // 2) Agrupa por foto
+    // groups[foto] = { foto, lastTs, lastNome, lastComentario, newCount }
+    const groups = {};
+    for (const r of cmts) {
+        const foto = r.foto;
+        if (!foto) continue;
+        const ts = _ts(r);
+        if (!groups[foto]) {
+            groups[foto] = {
+                foto,
+                lastTs: ts,
+                lastNome: r.nome || "Alguém",
+                lastComentario: r.comentario || "",
+                newCount: 0
+            };
+        }
+        
+        // conta "não lidas" (novo desde lastNotifSeen)
+        if (ts > lastNotifSeen && r.device_id !== DEVICE_ID) groups[foto].newCount += 1;
+        
+        // mantém o mais recente como "último comentário"
+        if (ts >= groups[foto].lastTs) {
+            groups[foto].lastTs = ts;
+            groups[foto].lastNome = r.nome || "Alguém";
+            groups[foto].lastComentario = r.comentario || "";
+        }
+    }
+    
+    // 3) Ordena fotos pelo comentário mais recente
+    const list = Object.values(groups).sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0));
+    
+    // 4) Badge = soma dos novos por foto
+    const unseenTotal = list.reduce((sum, g) => sum + (g.newCount || 0), 0);
+    if (unseenTotal > 0) {
+        badge.textContent = unseenTotal > 99 ? "99+" : String(unseenTotal);
+        badge.classList.remove("hidden");
+    } else {
+        badge.classList.add("hidden");
+    }
+    
+    if (!list.length) {
+        notifList.innerHTML = '<div class="text-center text-gray-600 py-6 italic">Nenhum comentário ainda.</div>';
+        return;
+    }
+    
+    // 5) Render estilo "Facebook"
+    notifList.innerHTML = list.map(g => {
+    // Mapeia para o nome correto na pasta publicada
+    let idx = -1;
+    let srcCerta = g.foto;
+    for (let nome of PHOTOS) {
+        if (nome === g.foto) { idx = PHOTOS.indexOf(nome); srcCerta = nome; break; }
+        if (nome.toLowerCase().split('.')[0] === g.foto.toLowerCase().split('.')[0]) {
+            idx = PHOTOS.indexOf(nome); srcCerta = nome; break;
+        }
+    }
+    const when = _fmtTime(g.lastTs);
+    const title = (g.newCount > 0)
+      ? `💬 ${g.newCount} novo(s) comentário(s) nesta foto`
+      : `💬 Comentários nesta foto`;
+    const sub = `${g.lastNome}: ${g.lastComentario}`;
+    const onclick = (idx >= 0) ? `openNotifFrom(${idx})` : "";
+    const unreadDot = (g.newCount > 0) ? '<span class="w-2 h-2 rounded-full bg-primary inline-block"></span>' : '';
+
+    const thumb = `<img src="${srcCerta}" class="w-12 h-12 rounded-lg object-cover border border-black/10" loading="lazy"/>`;
+
+    return `
+      <button class="w-full text-left flex items-start gap-3 p-3 rounded-xl bg-white/60 hover:bg-white/80 border border-black/5"
+              onclick="${onclick}">
+        ${thumb}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="font-bold text-gray-900">${title}</div>
+            <div class="text-[11px] text-gray-600 flex items-center gap-2">
+              ${unreadDot}
+              <span>${when}</span>
+            </div>
+          </div>
+          <div class="text-[13px] text-gray-700 mt-1 line-clamp-2">${escapeHtml(sub)}</div>
+        </div>
+      </button>
+    `;
+}).join("");
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
+async function openNotif(){
+  const p = document.getElementById("notifPanel");
+  if(!p) return;
+  p.classList.remove("hidden");
+
+  // 1) varre e mostra
+  await loadNotifications();
+
+  // 2) marca como visto DEPOIS de mostrar
+  lastNotifSeen = Date.now();
+  localStorage.setItem("bolt_notif_seen", String(lastNotifSeen));
+
+  // 3) recarrega só pra atualizar badge/bolinha
+  await loadNotifications();
+}
+
+function closeNotif(){
+  document.getElementById("notifPanel")?.classList.add("hidden");
+}
+
+function openNotifFrom(idx){
+  closeNotif();
+  openLightbox(idx);
+}
+// ====== BADGE "NOVA" POR 10s ======
+let NEW_SET = new Set();
+let NEW_TIMER = null;
+
+function markNewPhotos(arr){
+  NEW_SET = new Set(arr || []);
+  if(NEW_TIMER) clearTimeout(NEW_TIMER);
+
+  if(NEW_SET.size > 0){
+    NEW_TIMER = setTimeout(() => {
+      NEW_SET = new Set();
+      renderFeed();
+    }, 10000);
+  }
+}
+
+function isNewPhoto(src){
+  return NEW_SET.has(src);
+}
+    // Inicia a ordenação correta e a interface
+    sortPhotosByNameDesc();
+    renderFeed();
+    updateCounts();
+    loadMural();
+    // Preenche os campos de nome se já existir
+   if (savedUserName) {
+     document.getElementById("cmtName")?.setAttribute("value", savedUserName);
+     document.getElementById("muralName")?.setAttribute("value", savedUserName);
+}
+
+
+
+// ====== BANNER "FOTOS NOVAS" (estilo YouTube) ======
+const SEEN_PHOTOS_KEY = "bolt_seen_photos_v1";
+const PENDING_PHOTOS_KEY = "bolt_pending_photos_v1";
+let pendingNewPhotos = [];
+
+// lê o que o usuário já tinha visto
+function getSeen(){
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_PHOTOS_KEY) || "[]")); }
+  catch(e){ return new Set(); }
+}
+function setSeen(arr){
+  localStorage.setItem(SEEN_PHOTOS_KEY, JSON.stringify(arr));
+}
+function setPending(arr){
+  pendingNewPhotos = arr || [];
+  localStorage.setItem(PENDING_PHOTOS_KEY, JSON.stringify(pendingNewPhotos));
+}
+
+function showNewPhotosBar(n){
+  const bar = document.getElementById("newPhotosBar");
+  const txt = document.getElementById("newPhotosText");
+  if(!bar || !txt) return;
+  if(n > 0){
+    txt.textContent = `📸 ${n} foto(s) nova(s)`;
+    bar.classList.remove("hidden");
+  } else {
+    bar.classList.add("hidden");
+  }
+}
+
+// busca index.html e extrai const PHOTOS = [...]
+async function fetchRemotePhotos(){
+  const res = await fetch("index.html?ts=" + Date.now(), { cache: "no-store" });
+  const html = await res.text();
+  const m = html.match(/const\\s+PHOTOS\\s*=\\s*(\\[[\\s\\S]*?\\]);/);
+  if(!m) return null;
+  try { return JSON.parse(m[1]); } catch(e){ return null; }
+}
+
+// checa se entraram fotos novas no ar
+async function checkForNewPhotosBar(){
+  const remote = await fetchRemotePhotos();
+  if(!remote || !Array.isArray(remote)) return;
+
+  const seen = getSeen();
+  const newOnes = remote.filter(p => !seen.has(p));
+
+  // Se for a PRIMEIRA visita (seen vazio), não mostra banner:
+  // marca tudo como visto e pronto.
+  if(seen.size === 0){
+    setSeen(remote);
+    showNewPhotosBar(0);
+    return;
+  }
+
+  if(newOnes.length > 0){
+    setPending(newOnes);
+    showNewPhotosBar(newOnes.length);
+    // opcional: vibração curta
+    if(navigator.vibrate) navigator.vibrate(80);
+  } else {
+    showNewPhotosBar(0);
+  }
+}
+
+async function applyNewPhotos(){
+  const remote = await fetchRemotePhotos();
+  if(!remote || !Array.isArray(remote)) return;
+
+  const seen = getSeen();
+  const newOnes = remote.filter(p => !seen.has(p));
+
+  PHOTOS = remote;
+
+  // badge NOVA por 10s
+  markNewPhotos(newOnes);
+
+  // agora marca como visto
+  setSeen(remote);
+  setPending([]);
+
+  showNewPhotosBar(0);
+  renderFeed();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+
+
+    // Atualizações periódicas
+    setInterval(updateCounts, 10000);
+    setInterval(loadMural, 12000);
+    setInterval(checkForNewPhotosBar, 4000);
+    checkForNewPhotosBar();
+
+  </script>
+
+  <footer class="px-6 pb-10 text-center text-[13px] text-muted/80">📸 Fotos por Lancaster</footer>
+<body>
+
+<!-- Modal de Comentário em Tela Cheia -->
+<div id="commentModal" class="fixed inset-0 z-50 bg-white hidden flex flex-col overflow-x-hidden">
+  <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+    <h2 class="font-bold text-lg text-gray-800">Deixe um recado</h2>
+    <button onclick="closeCommentModal()" class="p-2 text-gray-500 hover:text-gray-800">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  <div class="flex-1 p-4 overflow-y-auto">
+    <input id="modalCmtName" type="text" placeholder="Seu nome (obrigatório)"
+           class="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"/>
+    <textarea id="modalCmtInput" placeholder="Sua mensagem..."
+              class="w-full max-w-full resize-none mb-4 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary" rows="4"></textarea>
+  </div>
+  <div class="p-4 border-t border-gray-200">
+    <button onclick="sendCommentFromModal(currentPhotoSrc)" 
+            class="w-full py-2.5 bg-primary text-white rounded-lg font-semibold">
+      Enviar Recado
+    </button>
+  </div>
+</div>
+</body>
+</html>
